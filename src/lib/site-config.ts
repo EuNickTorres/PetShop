@@ -36,6 +36,12 @@ export const siteConfig = {
   social: {
     instagram: "https://www.instagram.com/dayana_peluqueracanina/",
   },
+  googleReviews: {
+    rating: "5,0",
+    countLabel: "Más de 220 reseñas públicas",
+    mapsUrl:
+      "https://www.google.com/maps/place/?q=place_id:ChIJcbhlj9tBoRIRSM-uZl-o8cY",
+  },
 };
 
 export const services = [

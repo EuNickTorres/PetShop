@@ -3,62 +3,41 @@
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { logoutAgenda } from "@/app/agenda/actions";
-
-type AppointmentStatus =
-  | "pending"
-  | "confirmed"
-  | "arrived"
-  | "in_progress"
-  | "ready"
-  | "completed"
-  | "cancelled"
-  | "no_show";
-
-type PaymentMethod = "cash" | "card" | "transfer" | "other";
-
-type Payment = {
-  id: string;
-  amount: number;
-  method: PaymentMethod;
-  date: string;
-};
-
-type Appointment = {
-  id: string;
-  date: string;
-  time: string;
-  duration: number;
-  clientName: string;
-  phone: string;
-  petName: string;
-  species: "Perro" | "Gato";
-  breed: string;
-  size: "Pequeño" | "Mediano" | "Grande";
-  service: string;
-  price: string;
-  status: AppointmentStatus;
-  notes: string;
-  payments: Payment[];
-};
-
-type AppointmentDraft = Omit<Appointment, "id" | "payments">;
+import type {
+  Appointment,
+  AppointmentDraft,
+  AppointmentStatus,
+  Expense,
+  ExpenseDraft,
+  ExpenseStatus,
+  Payment,
+  PaymentMethod,
+} from "@/lib/agenda-types";
+import {
+  loadAgendaData,
+  persistAppointment,
+  persistAppointmentStatus,
+  persistExpense,
+  persistExpenseStatus,
+  persistPayment,
+  removeAppointment,
+  removeExpense,
+  removePayment,
+} from "@/lib/agenda-repository";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
 type View = "home" | "agenda" | "clients" | "finance" | "reports";
 type AgendaTheme = "light" | "dark";
 type DashboardRange = "month" | "30days" | "all";
 type DashboardStatus = "all" | AppointmentStatus;
 
-type ExpenseStatus = "planned" | "paid";
-
-type Expense = {
+type ClientSummary = {
   id: string;
-  date: string;
-  description: string;
-  category: "Productos" | "Alquiler" | "Suministros" | "Equipamiento" | "Otros";
-  amount: number;
-  status: ExpenseStatus;
+  clientName: string;
+  phone: string;
+  lastAppointment: Appointment;
+  visits: Appointment[];
+  pets: Map<string, Appointment>;
 };
-
-type ExpenseDraft = Omit<Expense, "id">;
 
 const STORAGE_KEY = "dayana-agenda-appointments-v1";
 const EXPENSES_STORAGE_KEY = "dayana-agenda-expenses-v1";
@@ -227,6 +206,14 @@ function appointmentInterval(appointment: Pick<Appointment, "time" | "duration">
   const [hours, minutes] = appointment.time.split(":").map(Number);
   const start = hours * 60 + minutes;
   return { start, end: start + appointment.duration };
+}
+
+function clientIdentityKey(appointment: Pick<Appointment, "id" | "clientName" | "phone">) {
+  const name = appointment.clientName.trim().toLocaleLowerCase("es-ES");
+  const phone = appointment.phone.replace(/\D/g, "");
+
+  if (name && phone) return `${name}|${phone}`;
+  return name || phone || appointment.id;
 }
 
 function nextStatus(status: AppointmentStatus) {
@@ -425,6 +412,169 @@ function AppointmentDetailsDialog({
             ) : (
               <button type="button" className="agenda-primary-button" onClick={onClose}>Cerrar</button>
             )}
+          </div>
+        </footer>
+      </article>
+    </dialog>
+  );
+}
+
+function ClientProfileDialog({
+  client,
+  onClose,
+  onRepeat,
+  onOpenAppointment,
+}: {
+  client: ClientSummary;
+  onClose: () => void;
+  onRepeat: (appointment: Appointment) => void;
+  onOpenAppointment: (appointment: Appointment) => void;
+}) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    if (!dialog.open) dialog.showModal();
+  }, []);
+
+  const pets = [...client.pets.values()];
+  const invoiced = client.visits
+    .filter((appointment) => !isInactiveStatus(appointment.status))
+    .reduce((total, appointment) => total + parsePrice(appointment.price), 0);
+  const collected = client.visits.reduce((total, appointment) => total + paidTotal(appointment), 0);
+
+  return (
+    <dialog
+      ref={dialogRef}
+      className="agenda-dialog agenda-client-dialog"
+      aria-labelledby="client-profile-title"
+      onCancel={onClose}
+    >
+      <article className="agenda-details-sheet agenda-client-sheet">
+        <header>
+          <div>
+            <p>Ficha del cliente</p>
+            <h2 id="client-profile-title">{client.clientName}</h2>
+            {client.phone ? (
+              <a className="agenda-client-phone" href={`tel:${client.phone.replace(/\s/g, "")}`}>
+                {client.phone}
+              </a>
+            ) : null}
+          </div>
+          <button type="button" className="agenda-icon-button" onClick={onClose} aria-label="Cerrar ficha del cliente">
+            Cerrar
+          </button>
+        </header>
+
+        <dl className="agenda-client-overview">
+          <div>
+            <dt>Última cita</dt>
+            <dd>{formatShortDate(client.lastAppointment.date)}</dd>
+          </div>
+          <div>
+            <dt>Visitas</dt>
+            <dd>{client.visits.length}</dd>
+          </div>
+          <div>
+            <dt>Mascotas</dt>
+            <dd>{pets.length}</dd>
+          </div>
+          <div>
+            <dt>Cobrado</dt>
+            <dd>{formatCurrency(collected)}</dd>
+            {invoiced > collected ? <small>{formatCurrency(invoiced - collected)} pendiente</small> : null}
+          </div>
+        </dl>
+
+        <section className="agenda-client-pet-records" aria-labelledby="client-pets-title">
+          <div className="agenda-client-section-heading">
+            <h3 id="client-pets-title">Mascotas</h3>
+            <span>{pets.length} registrada{pets.length === 1 ? "" : "s"}</span>
+          </div>
+          <div>
+            {pets.map((pet) => (
+              <article key={pet.petName.toLocaleLowerCase("es-ES")}>
+                <strong>{pet.petName}</strong>
+                <span>{pet.species}</span>
+                <small>{pet.breed || "Raza no indicada"} · {pet.size}</small>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="agenda-client-history" aria-labelledby="client-history-title">
+          <div className="agenda-client-section-heading">
+            <h3 id="client-history-title">Historial</h3>
+            <span>La cita más reciente aparece primero</span>
+          </div>
+
+          <div className="agenda-client-history-list">
+            {client.visits.map((appointment, index) => {
+              const price = parsePrice(appointment.price);
+              const paid = paidTotal(appointment);
+
+              return (
+                <details key={appointment.id} open={index === 0 ? true : undefined}>
+                  <summary>
+                    <time dateTime={`${appointment.date}T${appointment.time}`}>
+                      <strong>{formatShortDate(appointment.date)}</strong>
+                      <span>{appointment.time} - {calculateEndTime(appointment.time, appointment.duration)}</span>
+                    </time>
+                    <span className="agenda-client-history-service">
+                      <strong>{appointment.petName}</strong>
+                      <small>{appointment.service}</small>
+                    </span>
+                    <span className="agenda-client-history-price">
+                      <strong>{price ? formatCurrency(price) : "Sin precio"}</strong>
+                      <small>{paymentStateLabel(appointment)}</small>
+                    </span>
+                    <span className={`agenda-status-label status-label-${appointment.status}`}>
+                      {statusLabels[appointment.status]}
+                    </span>
+                  </summary>
+
+                  <div className="agenda-client-history-details">
+                    <dl>
+                      <div>
+                        <dt>Tratamiento</dt>
+                        <dd>{appointment.service}</dd>
+                      </div>
+                      <div>
+                        <dt>Duración</dt>
+                        <dd>{minutesToLabel(appointment.duration)}</dd>
+                      </div>
+                      <div>
+                        <dt>Precio</dt>
+                        <dd>{price ? formatCurrency(price) : "No indicado"}</dd>
+                      </div>
+                      <div>
+                        <dt>Cobrado</dt>
+                        <dd>{formatCurrency(paid)}</dd>
+                      </div>
+                      <div className="agenda-client-history-notes">
+                        <dt>Observaciones</dt>
+                        <dd>{appointment.notes || "Sin observaciones registradas"}</dd>
+                      </div>
+                    </dl>
+                    <button type="button" className="agenda-text-button" onClick={() => onOpenAppointment(appointment)}>
+                      Ver cita completa
+                    </button>
+                  </div>
+                </details>
+              );
+            })}
+          </div>
+        </section>
+
+        <footer>
+          <div>
+            <button type="button" className="agenda-secondary-button" onClick={onClose}>Cerrar</button>
+          </div>
+          <div>
+            <button type="button" className="agenda-primary-button" onClick={() => onRepeat(client.lastAppointment)}>
+              Agendar de nuevo
+            </button>
           </div>
         </footer>
       </article>
@@ -762,6 +912,7 @@ function ExpenseDialog({
 }
 
 export default function AgendaApp() {
+  const usesSupabase = isSupabaseConfigured();
   const today = useMemo(() => dateToKey(new Date()), []);
   const [selectedDate, setSelectedDate] = useState(today);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -777,41 +928,51 @@ export default function AgendaApp() {
   const [dashboardRange, setDashboardRange] = useState<DashboardRange>("month");
   const [dashboardStatus, setDashboardStatus] = useState<DashboardStatus>("all");
   const [clientSearch, setClientSearch] = useState("");
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [dataError, setDataError] = useState<string | null>(null);
 
   useEffect(() => {
     let isCancelled = false;
 
-    queueMicrotask(() => {
+    queueMicrotask(async () => {
       if (isCancelled) return;
       try {
-        const saved = window.localStorage.getItem(STORAGE_KEY);
-        const parsed = saved ? JSON.parse(saved) as Partial<Appointment>[] : [];
-        setAppointments(Array.isArray(parsed) ? parsed.map(normalizeAppointment) : []);
-        const savedExpenses = window.localStorage.getItem(EXPENSES_STORAGE_KEY);
-        const parsedExpenses = savedExpenses ? JSON.parse(savedExpenses) as Expense[] : [];
-        setExpenses(Array.isArray(parsedExpenses) ? parsedExpenses : []);
-      } catch {
+        if (usesSupabase) {
+          const data = await loadAgendaData();
+          if (isCancelled) return;
+          setAppointments(data.appointments.map(normalizeAppointment));
+          setExpenses(data.expenses);
+        } else {
+          const saved = window.localStorage.getItem(STORAGE_KEY);
+          const parsed = saved ? JSON.parse(saved) as Partial<Appointment>[] : [];
+          setAppointments(Array.isArray(parsed) ? parsed.map(normalizeAppointment) : []);
+          const savedExpenses = window.localStorage.getItem(EXPENSES_STORAGE_KEY);
+          const parsedExpenses = savedExpenses ? JSON.parse(savedExpenses) as Expense[] : [];
+          setExpenses(Array.isArray(parsedExpenses) ? parsedExpenses : []);
+        }
+      } catch (error) {
         setAppointments([]);
         setExpenses([]);
+        setDataError(error instanceof Error ? error.message : "No se pudieron cargar los datos.");
       } finally {
-        setIsReady(true);
+        if (!isCancelled) setIsReady(true);
       }
     });
 
     return () => {
       isCancelled = true;
     };
-  }, []);
+  }, [usesSupabase]);
 
   useEffect(() => {
-    if (!isReady) return;
+    if (!isReady || usesSupabase) return;
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(appointments));
-  }, [appointments, isReady]);
+  }, [appointments, isReady, usesSupabase]);
 
   useEffect(() => {
-    if (!isReady) return;
+    if (!isReady || usesSupabase) return;
     window.localStorage.setItem(EXPENSES_STORAGE_KEY, JSON.stringify(expenses));
-  }, [expenses, isReady]);
+  }, [expenses, isReady, usesSupabase]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -843,20 +1004,15 @@ export default function AgendaApp() {
   const totalRevenue = activeDayAppointments.reduce((total, appointment) => total + (Number(appointment.price.replace(",", ".")) || 0), 0);
 
   const clients = useMemo(() => {
-    const byPhone = new Map<string, {
-      clientName: string;
-      phone: string;
-      lastAppointment: Appointment;
-      visits: Appointment[];
-      pets: Map<string, Appointment>;
-    }>();
+    const byClient = new Map<string, ClientSummary>();
     [...appointments]
       .sort((left, right) => `${right.date}${right.time}`.localeCompare(`${left.date}${left.time}`))
       .forEach((appointment) => {
-        const key = appointment.phone || appointment.clientName.toLowerCase();
-        const current = byPhone.get(key);
+        const key = clientIdentityKey(appointment);
+        const current = byClient.get(key);
         if (!current) {
-          byPhone.set(key, {
+          byClient.set(key, {
+            id: key,
             clientName: appointment.clientName,
             phone: appointment.phone,
             lastAppointment: appointment,
@@ -868,8 +1024,12 @@ export default function AgendaApp() {
           if (!current.pets.has(appointment.petName.toLowerCase())) current.pets.set(appointment.petName.toLowerCase(), appointment);
         }
       });
-    return [...byPhone.values()];
+    return [...byClient.values()];
   }, [appointments]);
+
+  const selectedClient = selectedClientId
+    ? clients.find((client) => client.id === selectedClientId) ?? null
+    : null;
 
   const filteredClients = useMemo(() => {
     const query = clientSearch.trim().toLowerCase();
@@ -991,7 +1151,7 @@ export default function AgendaApp() {
     });
   }
 
-  function saveAppointment(draft: AppointmentDraft) {
+  async function saveAppointment(draft: AppointmentDraft) {
     const draftInterval = appointmentInterval(draft);
     const editingId = dialogState && "id" in dialogState ? dialogState.id : null;
     const conflict = appointments.find((appointment) => {
@@ -1001,55 +1161,100 @@ export default function AgendaApp() {
     });
     if (conflict && !window.confirm(`Este horario se cruza con la cita de ${conflict.petName} (${conflict.time}–${calculateEndTime(conflict.time, conflict.duration)}). ¿Guardar igualmente?`)) return;
 
-    if (dialogState && "id" in dialogState) {
-      setAppointments((current) => current.map((appointment) => appointment.id === dialogState.id
-        ? { ...draft, id: dialogState.id, payments: appointment.payments }
-        : appointment));
-    } else {
-      setAppointments((current) => [...current, { ...draft, id: createId(), payments: [] }]);
+    try {
+      setDataError(null);
+      if (dialogState && "id" in dialogState) {
+        const appointmentId = dialogState.id;
+        if (usesSupabase) await persistAppointment(draft, appointmentId);
+        setAppointments((current) => current.map((appointment) => appointment.id === appointmentId
+          ? { ...draft, id: appointmentId, payments: appointment.payments }
+          : appointment));
+      } else {
+        const appointmentId = usesSupabase ? await persistAppointment(draft) : createId();
+        setAppointments((current) => [...current, { ...draft, id: appointmentId, payments: [] }]);
+      }
+      setSelectedDate(draft.date);
+      setDialogState(null);
+    } catch (error) {
+      setDataError(error instanceof Error ? error.message : "No se pudo guardar la cita.");
     }
-    setSelectedDate(draft.date);
-    setDialogState(null);
   }
 
-  function advanceAppointment(appointment: Appointment) {
+  async function advanceAppointment(appointment: Appointment) {
     const followingStatus = nextStatus(appointment.status);
     if (!followingStatus) return;
-    const updated = { ...appointment, status: followingStatus };
-    setAppointments((current) => current.map((item) => item.id === appointment.id ? updated : item));
-    if (selectedAppointment?.id === appointment.id) setSelectedAppointment(updated);
+    try {
+      setDataError(null);
+      if (usesSupabase) await persistAppointmentStatus(appointment.id, followingStatus);
+      const updated = { ...appointment, status: followingStatus };
+      setAppointments((current) => current.map((item) => item.id === appointment.id ? updated : item));
+      if (selectedAppointment?.id === appointment.id) setSelectedAppointment(updated);
+    } catch (error) {
+      setDataError(error instanceof Error ? error.message : "No se pudo actualizar la cita.");
+    }
   }
 
-  function savePayment(payment: Omit<Payment, "id">) {
+  async function savePayment(payment: Omit<Payment, "id">) {
     if (!paymentAppointment) return;
-    const nextPayment = { ...payment, id: createId() };
-    const updated = { ...paymentAppointment, payments: [...paymentAppointment.payments, nextPayment] };
-    setAppointments((current) => current.map((appointment) => appointment.id === paymentAppointment.id ? updated : appointment));
-    if (selectedAppointment?.id === paymentAppointment.id) setSelectedAppointment(updated);
-    setPaymentAppointment(null);
+    try {
+      setDataError(null);
+      const paymentId = usesSupabase
+        ? await persistPayment(paymentAppointment.id, payment)
+        : createId();
+      const nextPayment = { ...payment, id: paymentId };
+      const updated = { ...paymentAppointment, payments: [...paymentAppointment.payments, nextPayment] };
+      setAppointments((current) => current.map((appointment) => appointment.id === paymentAppointment.id ? updated : appointment));
+      if (selectedAppointment?.id === paymentAppointment.id) setSelectedAppointment(updated);
+      setPaymentAppointment(null);
+    } catch (error) {
+      setDataError(error instanceof Error ? error.message : "No se pudo guardar el pago.");
+    }
   }
 
-  function saveExpense(expense: ExpenseDraft) {
-    setExpenses((current) => [{ ...expense, id: createId() }, ...current]);
-    setIsExpenseDialogOpen(false);
+  async function saveExpense(expense: ExpenseDraft) {
+    try {
+      setDataError(null);
+      const expenseId = usesSupabase ? await persistExpense(expense) : createId();
+      setExpenses((current) => [{ ...expense, id: expenseId }, ...current]);
+      setIsExpenseDialogOpen(false);
+    } catch (error) {
+      setDataError(error instanceof Error ? error.message : "No se pudo guardar la salida.");
+    }
   }
 
-  function toggleExpenseStatus(expense: Expense) {
-    setExpenses((current) => current.map((item) => item.id === expense.id
-      ? { ...item, status: item.status === "paid" ? "planned" : "paid" }
-      : item));
+  async function toggleExpenseStatus(expense: Expense) {
+    const status = expense.status === "paid" ? "planned" : "paid";
+    try {
+      setDataError(null);
+      if (usesSupabase) await persistExpenseStatus(expense.id, status);
+      setExpenses((current) => current.map((item) => item.id === expense.id ? { ...item, status } : item));
+    } catch (error) {
+      setDataError(error instanceof Error ? error.message : "No se pudo actualizar la salida.");
+    }
   }
 
-  function deleteExpense(expense: Expense) {
+  async function deleteExpense(expense: Expense) {
     if (!window.confirm(`¿Eliminar la salida “${expense.description}”?`)) return;
-    setExpenses((current) => current.filter((item) => item.id !== expense.id));
+    try {
+      setDataError(null);
+      if (usesSupabase) await removeExpense(expense.id);
+      setExpenses((current) => current.filter((item) => item.id !== expense.id));
+    } catch (error) {
+      setDataError(error instanceof Error ? error.message : "No se pudo eliminar la salida.");
+    }
   }
 
-  function deletePayment(appointment: Appointment, paymentId: string) {
+  async function deletePayment(appointment: Appointment, paymentId: string) {
     if (!window.confirm("¿Eliminar este pago? El saldo pendiente se actualizará automáticamente.")) return;
-    const updated = { ...appointment, payments: appointment.payments.filter((payment) => payment.id !== paymentId) };
-    setAppointments((current) => current.map((item) => item.id === appointment.id ? updated : item));
-    setSelectedAppointment(updated);
+    try {
+      setDataError(null);
+      if (usesSupabase) await removePayment(paymentId);
+      const updated = { ...appointment, payments: appointment.payments.filter((payment) => payment.id !== paymentId) };
+      setAppointments((current) => current.map((item) => item.id === appointment.id ? updated : item));
+      setSelectedAppointment(updated);
+    } catch (error) {
+      setDataError(error instanceof Error ? error.message : "No se pudo eliminar el pago.");
+    }
   }
 
   function repeatAppointment(appointment: Appointment) {
@@ -1061,11 +1266,17 @@ export default function AgendaApp() {
     setDialogState({ ...draft, date: today, status: "confirmed" });
   }
 
-  function deleteAppointment() {
+  async function deleteAppointment() {
     if (!dialogState || !("id" in dialogState)) return;
     if (!window.confirm("¿Eliminar esta cita? Esta acción no se puede deshacer.")) return;
-    setAppointments((current) => current.filter((appointment) => appointment.id !== dialogState.id));
-    setDialogState(null);
+    try {
+      setDataError(null);
+      if (usesSupabase) await removeAppointment(dialogState.id);
+      setAppointments((current) => current.filter((appointment) => appointment.id !== dialogState.id));
+      setDialogState(null);
+    } catch (error) {
+      setDataError(error instanceof Error ? error.message : "No se pudo eliminar la cita.");
+    }
   }
 
   return (
@@ -1103,6 +1314,12 @@ export default function AgendaApp() {
       </header>
 
       <div className="agenda-container">
+        {dataError ? (
+          <div className="agenda-data-error" role="alert">
+            <span>{dataError}</span>
+            <button type="button" onClick={() => setDataError(null)} aria-label="Cerrar aviso">Cerrar</button>
+          </div>
+        ) : null}
         {view === "home" ? (
           <section className="agenda-home">
             <div className="agenda-heading agenda-home-heading">
@@ -1587,7 +1804,13 @@ export default function AgendaApp() {
             {filteredClients.length ? (
               <div className="agenda-client-list">
                 {filteredClients.map((client) => (
-                    <article key={client.phone || client.clientName} className="agenda-client-row agenda-client-profile">
+                    <article key={client.id} className="agenda-client-row agenda-client-profile">
+                      <button
+                        type="button"
+                        className="agenda-client-card-target"
+                        onClick={() => setSelectedClientId(client.id)}
+                        aria-label={`Abrir ficha de ${client.clientName}`}
+                      />
                       <div>
                         <h2>{client.clientName}</h2>
                         {client.phone ? <a href={`tel:${client.phone.replace(/\s/g, "")}`}>{client.phone}</a> : <span>Sin teléfono</span>}
@@ -1624,6 +1847,21 @@ export default function AgendaApp() {
       </div>
 
       {view === "agenda" ? <button className="agenda-mobile-new" onClick={() => openNewAppointment()}>Nueva cita</button> : null}
+
+      {selectedClient ? (
+        <ClientProfileDialog
+          client={selectedClient}
+          onClose={() => setSelectedClientId(null)}
+          onRepeat={(appointment) => {
+            setSelectedClientId(null);
+            repeatAppointment(appointment);
+          }}
+          onOpenAppointment={(appointment) => {
+            setSelectedClientId(null);
+            setSelectedAppointment(appointment);
+          }}
+        />
+      ) : null}
 
       {selectedAppointment ? (
         <AppointmentDetailsDialog

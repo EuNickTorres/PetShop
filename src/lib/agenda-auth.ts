@@ -2,6 +2,8 @@ import "server-only";
 
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { createClient as createSupabaseClient } from "@/lib/supabase/server";
 
 const SESSION_COOKIE = "dayana_agenda_session";
 const SESSION_DURATION_SECONDS = 60 * 60 * 24 * 14;
@@ -63,6 +65,12 @@ export async function clearAgendaSession() {
 }
 
 export async function hasValidAgendaSession() {
+  if (isSupabaseConfigured()) {
+    const supabase = await createSupabaseClient();
+    const { data, error } = await supabase.auth.getClaims();
+    return Boolean(!error && data?.claims?.sub);
+  }
+
   if (!agendaAuthIsConfigured()) return false;
 
   const token = (await cookies()).get(SESSION_COOKIE)?.value;

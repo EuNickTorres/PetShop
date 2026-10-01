@@ -7,6 +7,8 @@ import {
   createAgendaSession,
   validateAgendaCredentials,
 } from "@/lib/agenda-auth";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { createClient as createSupabaseClient } from "@/lib/supabase/server";
 
 export type LoginState = {
   error?: string;
@@ -16,14 +18,25 @@ export async function loginAgenda(
   _previousState: LoginState,
   formData: FormData,
 ): Promise<LoginState> {
+  const identifier = String(formData.get("username") ?? "").trim();
+  const password = String(formData.get("password") ?? "");
+
+  if (isSupabaseConfigured()) {
+    const supabase = await createSupabaseClient();
+    const { error } = await supabase.auth.signInWithPassword({
+      email: identifier,
+      password,
+    });
+
+    if (error) return { error: "Correo electrónico o contraseña incorrectos." };
+    redirect("/agenda");
+  }
+
   if (!agendaAuthIsConfigured()) {
     return { error: "El acceso todavía no está configurado." };
   }
 
-  const username = String(formData.get("username") ?? "");
-  const password = String(formData.get("password") ?? "");
-
-  if (!validateAgendaCredentials(username, password)) {
+  if (!validateAgendaCredentials(identifier, password)) {
     return { error: "Usuario o contraseña incorrectos." };
   }
 
@@ -32,6 +45,10 @@ export async function loginAgenda(
 }
 
 export async function logoutAgenda() {
+  if (isSupabaseConfigured()) {
+    const supabase = await createSupabaseClient();
+    await supabase.auth.signOut();
+  }
   await clearAgendaSession();
   redirect("/agenda/entrar");
 }
