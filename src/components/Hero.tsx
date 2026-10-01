@@ -1,3 +1,4 @@
+import { CaretDoubleDownIcon } from "@phosphor-icons/react/dist/ssr/CaretDoubleDown";
 import Image from "next/image";
 import type { CSSProperties } from "react";
 import WhatsAppButton from "./WhatsAppButton";
@@ -48,6 +49,10 @@ export default function Hero() {
         <div className="hero-intro-cta">
           <WhatsAppButton label="Reservar por WhatsApp" />
         </div>
+      </div>
+      <div className="hero-scroll-cue" aria-hidden="true">
+        <span>Desliza hacia abajo</span>
+        <CaretDoubleDownIcon weight="bold" />
       </div>
       </div>
     </section>

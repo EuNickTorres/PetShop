@@ -148,6 +148,30 @@ button {
 .hero-intro-copy { margin-top: 0.65rem; }
 .hero-intro-cta { margin-top: 1.1rem; }
 
+.hero-scroll-cue {
+  position: absolute;
+  bottom: max(1.25rem, env(safe-area-inset-bottom));
+  left: 50%;
+  z-index: 15;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--brand-dark);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  line-height: 1;
+  text-transform: uppercase;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.hero-scroll-cue svg {
+  width: 1rem;
+  height: 1rem;
+}
+
 .editorial-dog-stage {
   position: absolute;
   bottom: 0;
@@ -3083,6 +3107,21 @@ body:has(.agenda-page[data-theme="light"]) {
       transform: translate3d(0, 0, 0);
     }
   }
+
+  .hero-scroll-cue svg {
+    animation: scroll-cue-pulse 1.5s var(--ease-editorial) infinite;
+  }
+
+  @keyframes scroll-cue-pulse {
+    0%, 100% {
+      opacity: 0.45;
+      transform: translate3d(0, -0.15rem, 0);
+    }
+    50% {
+      opacity: 1;
+      transform: translate3d(0, 0.2rem, 0);
+    }
+  }
 }
 
 /* Native scroll timeline: the scene remains pinned while the composition builds.
@@ -3129,9 +3168,28 @@ body:has(.agenda-page[data-theme="light"]) {
     .hero-intro-cta,
     aside[aria-label="Contacto rápido"] { animation-range: contain 62% contain 80%; }
 
+    .hero-scroll-cue {
+      animation: hero-scroll-cue-out linear both;
+      animation-timeline: --hero;
+      animation-range: contain 0% contain 14%;
+    }
+
     @keyframes dog-scroll-position {
       from { transform: translate(-50%, 18svh) scale(1.25); }
       to { transform: translate(-50%, 0) scale(1); }
+    }
+
+    @keyframes hero-scroll-cue-out {
+      from {
+        visibility: visible;
+        opacity: 1;
+        transform: translate3d(-50%, 0, 0);
+      }
+      to {
+        visibility: hidden;
+        opacity: 0;
+        transform: translate3d(-50%, 0.75rem, 0);
+      }
     }
   }
 }
