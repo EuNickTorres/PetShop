@@ -39,8 +39,7 @@ export const siteConfig = {
   googleReviews: {
     rating: "5,0",
     countLabel: "Más de 220 reseñas públicas",
-    mapsUrl:
-      "https://www.google.com/maps/place/?q=place_id:ChIJcbhlj9tBoRIRSM-uZl-o8cY",
+    mapsUrl: "https://maps.app.goo.gl/wqTzqJZDeGdFQWwSA?g_st=iw",
   },
 };
 
