@@ -1,5 +1,12 @@
-import Image from "next/image";
 import { siteConfig } from "@/lib/site-config";
+import { WorksWheel, type WorksWheelItem } from "@/components/ui/works-wheel";
+
+const galleryItems: WorksWheelItem[] = [
+  { title: "Peludos felices", image: "/images/pets-collage.jpg", alt: "Perros y gatos reunidos en una composición verde" },
+  { title: "Corte a medida", image: "/images/hero-dog.png", alt: "Perro de pelo claro después de su corte" },
+  { title: "En buenas manos", image: "/images/dayana-com-pet.png", alt: "Dayana junto a una mascota" },
+  { title: "Nuestro salón", image: "/images/fachada.jpg", alt: "Entrada de Dayana Peluquería en Tarragona" },
+];
 
 export default function Gallery() {
   return (
@@ -7,6 +14,7 @@ export default function Gallery() {
       <div className="gallery-shell">
         <div data-reveal className="gallery-heading">
           <div>
+            <span className="section-kicker">Un vistazo al salón</span>
             <h2 className="mt-4 max-w-2xl text-4xl font-bold leading-[1.02] tracking-[-0.045em] [text-wrap:balance] sm:text-5xl">
               Peludos felices, cuidados de verdad.
             </h2>
@@ -23,11 +31,8 @@ export default function Gallery() {
             Ver Instagram <span aria-hidden>↗</span>
           </a>
         </div>
-        <div data-reveal data-reveal-delay="1" className="gallery-grid">
-          <div className="gallery-image gallery-image-tall"><Image src="/images/pets-collage.jpg" alt="Mascotas atendidas en Dayana Peluquería" fill sizes="(max-width: 640px) 100vw, 35vw" /></div>
-          <div className="gallery-image gallery-image-offset"><Image src="/images/hero-dog.png" alt="Perro recién cuidado" fill sizes="(max-width: 640px) 100vw, 35vw" /></div>
-          <div className="gallery-image"><Image src="/images/dayana-com-pet.png" alt="Dayana junto a una mascota" fill sizes="(max-width: 640px) 100vw, 35vw" /></div>
-        </div>
+        <WorksWheel items={galleryItems} label="Momentos de Dayana Peluquería" />
+        <p className="gallery-interaction-note">Gira la rueda, arrastra o usa los botones para descubrir más.</p>
       </div>
     </section>
   );

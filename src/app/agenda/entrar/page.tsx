@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { hasValidAgendaSession } from "@/lib/agenda-auth";
+import LoginMeshBackground from "@/components/agenda/LoginMeshBackground";
 import LoginForm from "./LoginForm";
 
 export const metadata: Metadata = {
@@ -14,6 +15,7 @@ export default async function AgendaLoginPage() {
 
   return (
     <main id="main-content" className="agenda-login-page">
+      <LoginMeshBackground />
       <section className="agenda-login-shell" aria-labelledby="login-title">
         <Link href="/" className="agenda-wordmark" aria-label="Volver a Dayana Peluquería">
           <span>Dayana</span>

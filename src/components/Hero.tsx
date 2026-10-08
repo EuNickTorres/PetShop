@@ -1,19 +1,38 @@
+"use client";
+
 import { CaretDoubleDownIcon } from "@phosphor-icons/react/dist/ssr/CaretDoubleDown";
 import Image from "next/image";
-import type { CSSProperties } from "react";
+import { motion, useScroll, useSpring, useTransform } from "motion/react";
+import { useRef, type CSSProperties } from "react";
 import WhatsAppButton from "./WhatsAppButton";
 import Header from "./Header";
 
 const titleLetters = Array.from("BIENVENIDOS");
 
 export default function Hero() {
+  const sceneRef = useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll({ target: sceneRef, offset: ["start start", "end end"] });
+  const smoothProgress = useSpring(scrollYProgress, { stiffness: 90, damping: 26, mass: 0.6 });
+  const dogY = useTransform(smoothProgress, [0, 0.55], ["14vh", "0vh"]);
+  const dogScale = useTransform(smoothProgress, [0, 0.55], [1.22, 1]);
+  const dogRotate = useTransform(smoothProgress, [0, 0.55], [-2, 0]);
+
   return (
-    <section id="inicio" className="hero-scroll-scene">
+    <section id="inicio" ref={sceneRef} className="hero-scroll-scene">
       <div className="editorial-hero">
       <Header />
       <div className="hero-art">
       <div className="editorial-dog-stage">
-        <Image src="/images/hero-dog-editorial.png" alt="Perro cuidado y listo para su sesión de peluquería" fill priority sizes="(max-width: 767px) 90vw, 48vw" className="editorial-dog-image" />
+        <motion.div className="editorial-dog-motion" style={{ y: dogY, scale: dogScale, rotate: dogRotate }}>
+          <motion.div
+            className="editorial-dog-motion-inner"
+            initial={{ opacity: 0, y: 42, scale: 0.94 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 1.05, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <Image src="/images/hero-dog-editorial.png" alt="Perro cuidado y listo para su sesión de peluquería" fill priority sizes="(max-width: 767px) 90vw, 48vw" className="editorial-dog-image" />
+          </motion.div>
+        </motion.div>
       </div>
 
       <div className="hero-intro-cards absolute right-8 top-[20%] z-10 hidden gap-3 xl:flex lg:right-12">
