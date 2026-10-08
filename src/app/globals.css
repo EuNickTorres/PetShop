@@ -253,6 +253,10 @@ button {
   display: inline-block;
 }
 
+.editorial-display--welcome {
+  font-size: clamp(3.25rem, min(11.4vw, 16svh), 9.5rem);
+}
+
 .editorial-rule {
   display: inline-block;
   width: 3.4rem;
@@ -3525,6 +3529,10 @@ body:has(.agenda-page[data-theme="light"]) {
   .editorial-display {
     font-size: clamp(2.8rem, 15.2vw, 6.8rem);
     letter-spacing: -0.09em;
+  }
+
+  .editorial-display--welcome {
+    font-size: clamp(2.35rem, 10.9vw, 5rem);
   }
 
   .editorial-rule {

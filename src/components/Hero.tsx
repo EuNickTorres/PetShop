@@ -4,7 +4,7 @@ import type { CSSProperties } from "react";
 import WhatsAppButton from "./WhatsAppButton";
 import Header from "./Header";
 
-const titleLetters = Array.from("GROOMING");
+const titleLetters = Array.from("BIENVENIDOS");
 
 export default function Hero() {
   return (
@@ -29,7 +29,7 @@ export default function Hero() {
       </div>
 
       <div className="hero-content">
-        <h1 className="editorial-display" aria-label="Grooming">
+        <h1 className="editorial-display editorial-display--welcome" aria-label="Bienvenidos">
           {titleLetters.map((letter, index) => (
             <span
               key={`${letter}-${index}`}
