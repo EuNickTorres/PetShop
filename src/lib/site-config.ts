@@ -22,16 +22,13 @@ export const siteConfig = {
   phoneDisplay: "+34 633 32 11 81",
   email: "",
   address: {
-    // Endereço provisório: substituir pelo endereço real antes de publicar.
-    street: "Carrer de la Unió, 12",
-    city: "43001 Tarragona, España",
+    street: "Calle Tivissa, 4",
+    city: "L'Hospitalet de l'Infant, Tarragona",
     mapsUrl:
-      "https://www.google.com/maps/search/?api=1&query=Carrer%20de%20la%20Uni%C3%B3%2012%2C%2043001%20Tarragona%2C%20Espa%C3%B1a",
+      "https://www.google.com/maps/search/?api=1&query=Calle%20Tivissa%204%2C%20L%27Hospitalet%20de%20l%27Infant%2C%20Tarragona%2C%20Espa%C3%B1a",
   },
   hours: [
-    { days: "Lunes a Viernes", time: "9:30 - 13:30 y 16:00 - 20:00" },
-    { days: "Sábado", time: "10:00 - 14:00" },
-    { days: "Domingo", time: "Cerrado" },
+    { days: "Horario", time: "Mejor bajo cita previa" },
   ],
   social: {
     instagram: "https://www.instagram.com/dayana_peluqueracanina/",

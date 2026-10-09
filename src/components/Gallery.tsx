@@ -1,11 +1,16 @@
 import { siteConfig } from "@/lib/site-config";
 import { WorksWheel, type WorksWheelItem } from "@/components/ui/works-wheel";
+import galleryPhoto1 from "../../Fotos Galeria/Photo1.jpeg";
+import galleryPhoto2 from "../../Fotos Galeria/Photo2.jpeg";
+import galleryPhoto3 from "../../Fotos Galeria/Photo3.jpeg";
+import galleryPhoto4 from "../../Fotos Galeria/Photo4.jpeg";
 
 const galleryItems: WorksWheelItem[] = [
-  { title: "Peludos felices", image: "/images/pets-collage.jpg", alt: "Perros y gatos reunidos en una composición verde" },
-  { title: "Corte a medida", image: "/images/hero-dog.png", alt: "Perro de pelo claro después de su corte" },
-  { title: "En buenas manos", image: "/images/dayana-com-pet.png", alt: "Dayana junto a una mascota" },
   { title: "Nuestro salón", image: "/images/fachada.jpg", alt: "Entrada de Dayana Peluquería en Tarragona" },
+  { title: "Peludos felices", image: galleryPhoto1, alt: "Tres perros pequeños después de su sesión de peluquería" },
+  { title: "En buenas manos", image: galleryPhoto2, alt: "Dayana sonriendo mientras sostiene a dos perros recién arreglados", fit: "contain" },
+  { title: "Antes y después", image: galleryPhoto3, alt: "Antes y después del corte de un perro shih tzu", fit: "contain" },
+  { title: "Cuidado a medida", image: galleryPhoto4, alt: "Antes y después del arreglo de un perro pomerania", fit: "contain" },
 ];
 
 export default function Gallery() {

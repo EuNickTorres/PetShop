@@ -1,13 +1,15 @@
 "use client";
 
 import Image from "next/image";
+import type { StaticImageData } from "next/image";
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
 export interface WorksWheelItem {
   title: string;
-  image: string;
+  image: string | StaticImageData;
   alt: string;
+  fit?: "cover" | "contain";
 }
 
 export interface WorksWheelProps extends Omit<React.ComponentPropsWithoutRef<"section">, "children"> {
@@ -200,7 +202,13 @@ export function WorksWheel({
           {items.map((item) => (
             <figure key={item.title}>
               <div className="works-wheel-static-image">
-                <Image src={item.image} alt={item.alt} fill sizes="(max-width: 640px) 80vw, 30vw" />
+                <Image
+                  src={item.image}
+                  alt={item.alt}
+                  fill
+                  sizes="(max-width: 640px) 80vw, 30vw"
+                  style={{ objectFit: item.fit ?? "cover" }}
+                />
               </div>
               <figcaption>{item.title}</figcaption>
             </figure>
@@ -255,7 +263,13 @@ export function WorksWheel({
                   }}
                 >
                   <div className="works-wheel-card-face">
-                    <Image src={item.image} alt={item.alt} fill sizes="(max-width: 640px) 65vw, 40vw" />
+                    <Image
+                      src={item.image}
+                      alt={item.alt}
+                      fill
+                      sizes="(max-width: 640px) 65vw, 40vw"
+                      style={{ objectFit: item.fit ?? "cover" }}
+                    />
                     <span aria-hidden="true" className="works-wheel-card-number">{String(index + 1).padStart(2, "0")}</span>
                   </div>
                 </div>

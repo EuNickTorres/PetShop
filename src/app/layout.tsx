@@ -66,13 +66,6 @@ const localBusinessJsonLd = {
     addressLocality: siteConfig.address.city,
     addressCountry: "ES",
   },
-  openingHoursSpecification: siteConfig.hours
-    .filter((h) => h.time !== "Cerrado")
-    .map((h) => ({
-      "@type": "OpeningHoursSpecification",
-      dayOfWeek: h.days,
-      description: h.time,
-    })),
   sameAs: Object.values(siteConfig.social),
 };
 
