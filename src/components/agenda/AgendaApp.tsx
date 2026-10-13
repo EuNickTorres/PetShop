@@ -717,7 +717,7 @@ function AppointmentDialog({
                 <option>Baño e hidratación</option>
                 <option>Corte y deslanado</option>
                 <option>Uñas y limpieza de oídos</option>
-                <option>Spa para mascotas</option>
+                <option>Tienda personalizada</option>
                 <option>Servicio completo</option>
                 <option>Otro</option>
               </select>

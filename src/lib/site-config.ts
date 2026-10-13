@@ -57,8 +57,8 @@ export const services = [
     description: "Corte de uñas, limpieza de oídos y ojos.",
   },
   {
-    icon: "🐾",
-    title: "Spa para mascotas",
-    description: "Tratamiento relajante con productos especiales para piel sensible.",
+    icon: "🛍️",
+    title: "Tienda personalizada",
+    description: "Productos para cada mascota: antiparasitarios, higiene y otros artículos esenciales.",
   },
 ];

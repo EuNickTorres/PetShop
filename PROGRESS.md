@@ -5,7 +5,7 @@ Site institucional para a peluquería canina/felina da tia (Espanha). Documento 
 ## Stack escolhida
 
 - **Next.js** (App Router, TypeScript) + **Tailwind CSS v4**
-- Hospedagem planejada: **Vercel** (ainda não configurado)
+- Hospedagem: **Vercel**, conectada à branch `master`
 - CMS planejado para a Dayana editar sozinha: **Sanity** (ainda não integrado — próximo passo grande)
 - Fase futura: loja online (carrinho/pagamento) — arquitetura escolhida pensando em crescer para isso
 
@@ -21,15 +21,15 @@ Abre em http://localhost:3000. O script `dev` usa `next dev --webpack` (não Tur
 ```
 src/
   app/
-    layout.tsx      → fonte (Quicksand), <html lang="es">, metadata
+    layout.tsx      → fontes (Outfit e Manrope), <html lang="es">, metadata
     page.tsx        → monta a Home: Header, Hero, Services, About, Gallery, Contact, Footer
-    globals.css     → paleta de cores (CSS vars) + animação "float"
+    globals.css     → paleta, componentes visuais e animações
   components/
     Header.tsx      → logo, nav, botão "Reservar cita"
     Hero.tsx        → seção principal (ver detalhes abaixo)
     Services.tsx    → grid de serviços (vem de site-config.ts)
-    About.tsx       → texto placeholder + espaço de foto (SEM foto real ainda, ver pendências)
-    Gallery.tsx      → grid de emojis placeholder (SEM fotos reais ainda)
+    About.tsx       → apresentação do estabelecimento com foto real da fachada
+    Gallery.tsx      → galeria interativa com fotos reais
     Contact.tsx     → horários, endereço, WhatsApp, e-mail
     Footer.tsx      → redes sociais
     WhatsAppButton.tsx → botão reutilizável (link wa.me com mensagem pré-pronta)
@@ -37,14 +37,12 @@ src/
     site-config.ts  → ÚNICO arquivo com os dados do negócio (nome, telefone, horários,
                        endereço, textos do hero, serviços). Editar aqui reflete em todo o site.
 public/images/
-  fachada.jpg        → foto real da fachada da loja (enviada, AINDA NÃO usada no site)
+  fachada.jpg        → foto real da fachada usada na Galeria
   pets-collage.jpg   → foto/colagem de pets (enviada, USADA no círculo do Hero)
 ```
 
-Também na raiz do projeto (fora do site, só arquivos de referência que o usuário mandou):
-`home page.jpeg` (referência de design "PetVida" usada de inspiração pro Hero),
-`imagem petshop1.jpeg` / `imagempetshop2.jpeg` (mesmas fotos copiadas pra public/images),
-`imagem petshop3.mp4` (vídeo do estabelecimento, ainda não usado em lugar nenhum).
+Os arquivos antigos de referência, as cópias de imagens que já existiam em `public/images`
+e o vídeo que não era usado foram removidos da raiz após a implementação.
 
 ## Paleta de cores (extraída das fotos reais da loja)
 
@@ -59,7 +57,7 @@ Cores extraídas via script Node usando `sharp` (amostragem de pixels das fotos 
 
 ## Hero — decisões de design
 
-Redesenhado no estilo da landing de referência que o usuário mandou (`home page.jpeg`, projeto "PetVida" feito no Lovable), adaptado para "Dayana Peluquería":
+Redesenhado a partir da referência visual enviada pelo usuário, adaptada para "Dayana Peluquería":
 - Badge "🐾 Peluquería canina y felina"
 - Título com trecho destacado em verde ("Tu mascota siempre **guapa y feliz**")
 - Botão sólido "Reservar cita" + botão contorno "Hablar por WhatsApp"
@@ -75,16 +73,13 @@ Redesenhado no estilo da landing de referência que o usuário mandou (`home pag
 
 ## Pendências / próximos passos
 
-1. **Fotos melhores** — a Dayana vai tirar fotos novas da loja; as atuais (`fachada.jpg`, o vídeo) foram consideradas fracas demais pra usar agora. Não usar ainda em "Sobre nosotros" nem na Galeria — aguardar fotos novas.
-2. **Números reais** do Hero (avaliação, quantidade de mascotas atendidas) — hoje são placeholder.
-3. **Dados reais do negócio** em `src/lib/site-config.ts`: telefone/WhatsApp, e-mail, endereço, horários e redes sociais ainda são placeholder — falta a Dayana confirmar.
-4. **Seção "Sobre nosotros"** — texto ainda é genérico, falta história real da Dayana.
-5. **Galeria** — hoje são só emojis, esperando fotos boas.
-6. **Integrar Sanity CMS** para a Dayana editar conteúdo sozinha sem mexer em código (decisão já tomada, ainda não implementada).
-7. **Domínio + deploy no Vercel** (hospedagem ainda não escolhida/configurada). Ao decidir o domínio, atualizar `siteConfig.siteUrl` em `src/lib/site-config.ts` (usado no SEO/Open Graph/sitemap).
-8. Decidir se/quando usar o vídeo `imagem petshop3.mp4` (ex: na Galeria ou no Hero).
+1. **Números reais** do Hero (avaliação, quantidade de mascotas atendidas) — hoje são placeholder.
+2. **Dados do negócio** em `src/lib/site-config.ts`: confirmar e-mail e revisar os demais dados antes do lançamento definitivo.
+3. **Seção "Sobre nosotros"** — texto ainda é genérico, falta história real da Dayana.
+4. **Integrar Sanity CMS** para a Dayana editar conteúdo sozinha sem mexer em código (decisão já tomada, ainda não implementada).
+5. **Domínio próprio** — ao escolher o domínio definitivo, atualizar `siteConfig.siteUrl` em `src/lib/site-config.ts` (usado no SEO/Open Graph/sitemap).
 
 ## Coisas para lembrar
 
 - Não sobrescrever a paleta de cores sem confirmar com o usuário — foi extraída das fotos reais da loja de propósito.
-- O usuário disse explicitamente para **não** colocar as fotos atuais no site — esperar fotos melhores.
+- Priorizar as fotos reais fornecidas pela Dayana nas próximas atualizações visuais.
